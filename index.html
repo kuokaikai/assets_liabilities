@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>資產負債紀錄</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .form-group { margin-bottom: 1rem; }
+    .form-section, .list-section { margin-bottom: 2rem; }
+    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: left; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h1>資產負債紀錄系統</h1>
+
+  <div class="form-section">
+    <label>
+      <input type="radio" name="type" value="asset" checked /> 新增資產
+    </label>
+    <label>
+      <input type="radio" name="type" value="liability" /> 新增負債
+    </label>
+
+    <form id="form-asset">
+      <div class="form-group">
+        <label>銀行名稱：<input type="text" id="bank" required /></label>
+      </div>
+      <div class="form-group">
+        <label>幣別：
+          <select id="currency">
+            <option value="TWD">台幣</option>
+            <option value="USD">美元</option>
+            <option value="JPY">日圓</option>
+            <option value="EUR">歐元</option>
+            <option value="CNY">人民幣</option>
+          </select>
+        </label>
+      </div>
+      <div class="form-group">
+        <label>額餘：<input type="number" id="amount" min="0" step="0.01" required /></label>
+      </div>
+    </form>
+
+    <form id="form-liability" class="hidden">
+      <div class="form-group">
+        <label>項目：
+          <select id="item">
+            <option value="生活費">生活費</option>
+            <option value="信用卡費">信用卡費</option>
+            <option value="房貸">房貸</option>
+            <option value="水電費">水電費</option>
+          </select>
+        </label>
+      </div>
+      <div class="form-group">
+        <label>新增日期：<input type="date" id="date" required /></label>
+      </div>
+      <div class="form-group">
+        <label>扣款金額：<input type="number" id="debit" min="0" step="1" required /></label>
+      </div>
+    </form>
+
+    <button id="submit">送出</button>
+  </div>
+
+  <div class="list-section">
+    <h2>資產列表</h2>
+    <table id="assets-table">
+      <thead>
+        <tr><th>銀行</th><th>幣別</th><th>額餘</th><th>操作</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div>總資產金額：<span id="total-assets">0</span></div>
+
+    <h2>負債列表</h2>
+    <table id="liabilities-table">
+      <thead>
+        <tr><th>項目</th><th>新增日期</th><th>扣款金額</th><th>操作</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div>總負債金額：<span id="total-liabilities">0</span></div>
+  </div>
+
+  <script>
+    const radioButtons = document.querySelectorAll('input[name="type"]');
+    const assetForm = document.getElementById('form-asset');
+    const liabilityForm = document.getElementById('form-liability');
+
+    radioButtons.forEach(r => {
+      r.addEventListener('change', () => {
+        if (r.value === 'asset') {
+          assetForm.classList.remove('hidden');
+          liabilityForm.classList.add('hidden');
+        } else {
+          assetForm.classList.add('hidden');
+          liabilityForm.classList.remove('hidden');
+        }
+      });
+    });
+
+    document.getElementById('submit').addEventListener('click', async () => {
+      const type = document.querySelector('input[name="type"]:checked').value;
+      let payload = { type };
+
+      try {
+        if (type === 'asset') {
+          payload.bank = document.getElementById('bank').value;
+          payload.currency = document.getElementById('currency').value;
+          payload.amount = parseFloat(document.getElementById('amount').value);
+        } else {
+          payload.item = document.getElementById('item').value;
+          payload.date = document.getElementById('date').value;
+          payload.debit = parseInt(document.getElementById('debit').value);
+        }
+
+        const response = await fetch('https://script.google.com/macros/s/AKfycbwYJFEJeB_-M3Sb9HtwngcJ5PtV-au4LjfwODSBzpGjviERbqu_FCoCD63k3mEBmQEl/exec', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+
+        alert('資料送出成功');
+        location.reload();
+      } catch (error) {
+        console.error('送出失敗:', error);
+        alert('送出失敗，請檢查您的網路或 Google Apps Script 設定');
+      }
+    });
+  </script>
+</body>
+</html>
