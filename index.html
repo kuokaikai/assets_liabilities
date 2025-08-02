@@ -87,54 +87,100 @@
   </div>
 
   <script>
-    const radioButtons = document.querySelectorAll('input[name="type"]');
-    const assetForm = document.getElementById('form-asset');
-    const liabilityForm = document.getElementById('form-liability');
+  const radioButtons = document.querySelectorAll('input[name="type"]');
+  const assetForm = document.getElementById('form-asset');
+  const liabilityForm = document.getElementById('form-liability');
 
-    radioButtons.forEach(r => {
-      r.addEventListener('change', () => {
-        if (r.value === 'asset') {
-          assetForm.classList.remove('hidden');
-          liabilityForm.classList.add('hidden');
-        } else {
-          assetForm.classList.add('hidden');
-          liabilityForm.classList.remove('hidden');
-        }
-      });
-    });
-
-    document.getElementById('submit').addEventListener('click', async () => {
-      const type = document.querySelector('input[name="type"]:checked').value;
-      let payload = { type };
-
-      try {
-        if (type === 'asset') {
-          payload.bank = document.getElementById('bank').value;
-          payload.currency = document.getElementById('currency').value;
-          payload.amount = parseFloat(document.getElementById('amount').value);
-        } else {
-          payload.item = document.getElementById('item').value;
-          payload.date = document.getElementById('date').value;
-          payload.debit = parseInt(document.getElementById('debit').value);
-        }
-
-        const response = await fetch('https://script.google.com/macros/s/AKfycbxKZEx4bHMnWyShxPupORbKjXOXfI7J1qGfUAbFJm4tvX6ZYIHJFUe7NUVk-kFc65UL/exec', {
-          method: 'POST',
-          body: JSON.stringify(payload),
-          headers: { 'Content-Type': 'application/json' }
-        });
-
-        if (!response.ok) {
-          throw new Error(`Server returned ${response.status}`);
-        }
-
-        alert('資料送出成功');
-        location.reload();
-      } catch (error) {
-        console.error('送出失敗:', error);
-        alert('送出失敗，請檢查您的網路或 Google Apps Script 設定');
+  radioButtons.forEach(r => {
+    r.addEventListener('change', () => {
+      if (r.value === 'asset') {
+        assetForm.classList.remove('hidden');
+        liabilityForm.classList.add('hidden');
+      } else {
+        assetForm.classList.add('hidden');
+        liabilityForm.classList.remove('hidden');
       }
     });
-  </script>
+  });
+
+  document.getElementById('submit').addEventListener('click', async () => {
+    const type = document.querySelector('input[name="type"]:checked').value;
+    let payload = { type };
+
+    try {
+      if (type === 'asset') {
+        payload.bank = document.getElementById('bank').value;
+        payload.currency = document.getElementById('currency').value;
+        payload.amount = parseFloat(document.getElementById('amount').value);
+      } else {
+        payload.item = document.getElementById('item').value;
+        payload.date = document.getElementById('date').value;
+        payload.debit = parseInt(document.getElementById('debit').value);
+      }
+
+      const response = await fetch('https://script.google.com/macros/s/AKfycbwYJFEJeB_-M3Sb9HtwngcJ5PtV-au4LjfwODSBzpGjviERbqu_FCoCD63k3mEBmQEl/exec', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) throw new Error(`Server returned ${response.status}`);
+      alert('資料送出成功');
+      location.reload();
+    } catch (error) {
+      console.error('送出失敗:', error);
+      alert('送出失敗，請檢查您的網路或 Google Apps Script 設定');
+    }
+  });
+
+  // ✅ 讀取 Google Sheets 資料並顯示
+  async function loadData() {
+    try {
+      const response = await fetch('https://script.google.com/macros/s/AKfycbxF_BBW8uO0HDKD4Iyn27g_oM4wpcUZ3P62V9EAorfVQsJjmS8_2AnSAmfGatM4G1A/exec');
+      const { assets, liabilities } = await response.json();
+
+      const assetsTable = document.querySelector('#assets-table tbody');
+      const liabilitiesTable = document.querySelector('#liabilities-table tbody');
+      let totalAssets = 0;
+      let totalLiabilities = 0;
+
+      // 顯示資產資料
+      assets.forEach(row => {
+        const [bank, currency, amount] = row;
+        totalAssets += parseFloat(amount || 0);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${bank}</td>
+          <td>${currency}</td>
+          <td>${amount}</td>
+          <td>—</td>
+        `;
+        assetsTable.appendChild(tr);
+      });
+      document.getElementById('total-assets').textContent = totalAssets.toFixed(2);
+
+      // 顯示負債資料
+      liabilities.forEach(row => {
+        const [item, date, debit] = row;
+        totalLiabilities += parseFloat(debit || 0);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item}</td>
+          <td>${date}</td>
+          <td>${debit}</td>
+          <td>—</td>
+        `;
+        liabilitiesTable.appendChild(tr);
+      });
+      document.getElementById('total-liabilities').textContent = totalLiabilities.toFixed(2);
+    } catch (error) {
+      console.error('讀取資料錯誤:', error);
+      alert('無法讀取 Google Sheets 資料');
+    }
+  }
+
+  // 頁面加載時立即載入資料
+  window.addEventListener('DOMContentLoaded', loadData);
+</script>
 </body>
 </html>
